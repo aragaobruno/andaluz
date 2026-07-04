@@ -10,7 +10,7 @@ Rather than presenting a commercial platform, this repository serves as a techni
 
 LLMs are probabilistic by design, meaning their outputs are non-deterministic and prone to hallucinations. While this flexibility is valuable for unstructured reasoning, regulated industries (such as insurance, finance, and legal tech) demand strict determinism, predictable operational costs, and complete auditability. 
 
-Due to these hurdles—compounded by uncontrollable api cost surges, hidden failure modes, and lack of human review safeguards—recent industry research estimates that approximately 40% of agentic AI projects will be abandoned by 2027. Andaluz explores the architectural patterns required to mitigate these risks and bridge the gap between AI flexibility and enterprise reliability.
+Due to these hurdles—compounded by uncontrollable API cost surges, hidden failure modes, and lack of human review safeguards—recent industry research estimates that approximately 40% of agentic AI projects will be abandoned by 2027. Andaluz explores the architectural patterns required to mitigate these risks and bridge the gap between AI flexibility and enterprise reliability.
 
 ---
 
@@ -84,7 +84,7 @@ Andaluz's implementation demonstrates four core reliability patterns:
 2. Create a `.env` file in the root directory:
    ```env
    NVIDIA_API_KEY=your_nvidia_api_key_here
-   LITELLM_MASTER_KEY=sk-ark-master-key-dev
+   LITELLM_MASTER_KEY=sk-andaluz-master-key-dev
    ```
 3. Start the stack:
    ```bash
@@ -122,7 +122,7 @@ This runs three distinct verification scenarios:
 ### 3. Idempotency via Document Hash Workflow IDs
 * **Decision:** The workflow ID is derived directly from the SHA-256 hash of the source document (`claim-doc-hash-<hash_suffix>`). 
 * **Why:** Deriving the ID from the document content prevents duplicate processing of the same claim. If a user clicks "submit" twice, Temporal automatically routes the second request to the existing workflow execution (throwing a `WorkflowExecutionAlreadyStartedError` if active), enforcing idempotency out-of-the-box.
-* **What we gave up:** The inability to reprocessing the same physical document for legitimate revisions. To resubmit a corrected version of the same document, the system must generate a new unique hash (e.g. by appending metadata) or run on a separate run ID.
+* **What we gave up:** The inability to reprocess the same physical document for legitimate revisions. To resubmit a corrected version of the same document, the system must generate a new unique hash (e.g. by appending metadata) or run on a separate run ID.
 
 ---
 
@@ -139,4 +139,7 @@ This repository is a reference architecture study and intentionally omits produc
 
 ## Author Context
 
-This reference architecture was built to explore the challenges of applying probabilistic LLM outputs to highly regulated, deterministic business pipelines, demonstrating that reliability is an architectural concern, not just a model quality concern.
+This reference architecture was built by **Bruno Aragão** as an exploration of the real-world reliability challenges of applying AI to highly regulated, deterministic business pipelines—demonstrating that reliability is an architectural concern, not just a model quality concern.
+
+* **GitHub:** [@aragaobruno](https://github.com/aragaobruno)
+* **LinkedIn:** [Bruno Aragão](https://www.linkedin.com/in/aragaobruno/)

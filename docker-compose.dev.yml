@@ -1,0 +1,116 @@
+services:
+  # ---------------------------------------------------------
+  # TEMPORAL CLUSTER (Postgres Backend for Durability)
+  # ---------------------------------------------------------
+  temporal-db:
+    image: postgres:16-alpine
+    container_name: ark-temporal-db
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    volumes:
+      - temporal-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ark-network
+
+  temporal:
+    image: temporalio/auto-setup:1.24
+    container_name: ark-temporal
+    depends_on:
+      temporal-db:
+        condition: service_healthy
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=temporal
+      - POSTGRES_SEEDS=temporal-db
+    ports:
+      - "7233:7233"   # gRPC Endpoint
+    networks:
+      - ark-network
+    healthcheck:
+      test: ["CMD-SHELL", "temporal --address $$HOSTNAME:7233 workflow list"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    container_name: ark-temporal-ui
+    ports:
+      - "8088:8080"   # Web UI
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CORS_ORIGINS=http://localhost:8088
+    depends_on:
+      temporal:
+        condition: service_healthy
+    networks:
+      - ark-network
+
+  # ---------------------------------------------------------
+  # LITELLM PROXY (Model Gateway / Router)
+  # ---------------------------------------------------------
+  litellm:
+    image: ghcr.io/berriai/litellm:main-latest
+    container_name: ark-litellm
+    command: ["--config", "/app/config.yaml"]
+    ports:
+      - "4000:4000"   # OpenAI Compatible API
+      - "4001:4001"   # Admin UI
+    volumes:
+      - ./litellm/config.yaml:/app/config.yaml:ro
+    environment:
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-mock-key-for-dev}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-sk-mock-key-for-dev}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-ark-master-key-dev}
+    networks:
+      - ark-network
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/readiness')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------
+  # ARK WORKER (Python Application)
+  # ---------------------------------------------------------
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile.dev
+    container_name: ark-worker
+    restart: always
+    depends_on:
+      temporal:
+        condition: service_healthy
+      litellm:
+        condition: service_healthy
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - LITELLM_BASE_URL=http://litellm:4000/v1
+      - LITELLM_API_KEY=${LITELLM_MASTER_KEY:-sk-ark-master-key-dev}
+      - LOG_LEVEL=INFO
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
+    volumes:
+      - ./worker:/app
+      - ./test_claim.py:/app/test_claim.py
+    networks:
+      - ark-network
+    tty: true
+    stdin_open: true
+
+volumes:
+  temporal-db-data:
+
+networks:
+  ark-network:
+    driver: bridge

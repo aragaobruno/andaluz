@@ -1,0 +1,53 @@
+general_settings:
+  drop_params: true
+  alerting: ["slack"]
+
+model_list:
+  # TIER 1: Fast, Cheap, High Throughput (Primary for Extraction) - Llama 3.1 8B
+  - model_name: "ark-fast"
+    litellm_params:
+      model: "openai/meta/llama-3.1-8b-instruct"
+      api_key: os.environ/NVIDIA_API_KEY
+      api_base: "https://integrate.api.nvidia.com/v1"
+      max_tokens: 4096
+      timeout: 15
+    model_info:
+      input_cost_per_token: 0.00000015
+      output_cost_per_token: 0.00000060
+
+  # TIER 2: Better Reasoning, Medium Cost (Fallback 1) - Llama 3.1 70B
+  - model_name: "ark-reasoning"
+    litellm_params:
+      model: "openai/meta/llama-3.1-70b-instruct"
+      api_key: os.environ/NVIDIA_API_KEY
+      api_base: "https://integrate.api.nvidia.com/v1"
+      max_tokens: 8192
+      timeout: 30
+    model_info:
+      input_cost_per_token: 0.00000070
+      output_cost_per_token: 0.00000280
+
+  # TIER 3: Heavy Lifting, Expensive (Fallback 2 / Complex Cases) - Nemotron 70B
+  - model_name: "ark-heavy"
+    litellm_params:
+      model: "openai/nvidia/llama-3.1-nemotron-70b-instruct"
+      api_key: os.environ/NVIDIA_API_KEY
+      api_base: "https://integrate.api.nvidia.com/v1"
+      max_tokens: 16384
+      timeout: 60
+    model_info:
+      input_cost_per_token: 0.00000100
+      output_cost_per_token: 0.00000400
+
+router_settings:
+  routing_strategy: "simple-shuffle"
+  fallback_policy:
+    "ark-fast": ["ark-reasoning", "ark-heavy"]
+    "ark-reasoning": ["ark-heavy"]
+  num_retries: 2
+  retry_after: 1
+  retry_on_status_codes: [429, 500, 502, 503, 504]
+
+litellm_settings:
+  ui: true
+  telemetry: false

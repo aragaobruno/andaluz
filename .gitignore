@@ -22,4 +22,5 @@ ENV/
 worker/check_failed.py
 worker/send_signals.py
 worker/create_github_repo.py
+worker/rename_repo.py
 

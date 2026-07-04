@@ -1,6 +1,6 @@
-# ARK (Agent Reliability Kernel)
+# Andaluz
 
-ARK (Agent Reliability Kernel) is a reference architecture and working MVP designed to explore the reliability, cost control, and auditability patterns required to run LLM-based agents in regulated production environments. 
+Andaluz is a reference architecture and working MVP designed to explore the reliability, cost control, and auditability patterns required to run LLM-based agents in regulated production environments. 
 
 Rather than presenting a commercial platform, this repository serves as a technical case study on separating probabilistic AI behaviors from deterministic business rules, enforcing real-time budget ceilings, and implementing durable state management.
 
@@ -10,13 +10,13 @@ Rather than presenting a commercial platform, this repository serves as a techni
 
 LLMs are probabilistic by design, meaning their outputs are non-deterministic and prone to hallucinations. While this flexibility is valuable for unstructured reasoning, regulated industries (such as insurance, finance, and legal tech) demand strict determinism, predictable operational costs, and complete auditability. 
 
-Due to these hurdles—compounded by uncontrollable api cost surges, hidden failure modes, and lack of human review safeguards—recent industry research estimates that approximately 40% of agentic AI projects will be abandoned by 2027. ARK explores the architectural patterns required to mitigate these risks and bridge the gap between AI flexibility and enterprise reliability.
+Due to these hurdles—compounded by uncontrollable api cost surges, hidden failure modes, and lack of human review safeguards—recent industry research estimates that approximately 40% of agentic AI projects will be abandoned by 2027. Andaluz explores the architectural patterns required to mitigate these risks and bridge the gap between AI flexibility and enterprise reliability.
 
 ---
 
 ## Architectural Pillars
 
-ARK's implementation demonstrates four core reliability patterns:
+Andaluz's implementation demonstrates four core reliability patterns:
 
 1. **Probabilistic/Deterministic Separation:** LLMs are used exclusively for parsing and extracting data from unstructured sources into structured models. Once structured, all business rule evaluation (e.g., CNPJ tax validation, date logic, policy limits) is handled by deterministic, testable Python code.
 2. **Durable Human-in-the-Loop (HITL):** When an extraction triggers manual review thresholds, the workflow state is persisted durably using Temporal. The execution yields and can pause for up to 48 hours waiting for an external approval signal without consuming active compute resources.
@@ -97,7 +97,7 @@ ARK's implementation demonstrates four core reliability patterns:
 
 Execute the automated test script inside the worker container:
 ```bash
-docker exec -e PYTHONUNBUFFERED=1 ark-worker python /app/test_claim.py
+docker exec -e PYTHONUNBUFFERED=1 andaluz-worker python /app/test_claim.py
 ```
 
 This runs three distinct verification scenarios:

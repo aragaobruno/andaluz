@@ -79,7 +79,7 @@ async def run_test():
                 "ProcessInsuranceClaimWorkflow",
                 claim,
                 id=workflow_id,
-                task_queue="ark-tasks",
+                task_queue="andaluz-tasks",
                 id_reuse_policy=WorkflowIDReusePolicy.REJECT_DUPLICATE
             )
             print(f"Workflow ID: {handle.id} execution started.")

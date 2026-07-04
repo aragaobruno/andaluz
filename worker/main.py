@@ -12,14 +12,14 @@ logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
     format="%(asctime)s %(levelname)-8s [%(name)s] %(message)s",
 )
-logger = logging.getLogger("ark-worker")
+logger = logging.getLogger("andaluz-worker")
 
 TEMPORAL_HOST = os.getenv("TEMPORAL_HOST", "localhost:7233")
-TASK_QUEUE = "ark-tasks"
+TASK_QUEUE = "andaluz-tasks"
 NAMESPACE = "default"
 
 async def main():
-    logger.info("Starting ARK Worker...", extra={"temporal_host": TEMPORAL_HOST, "task_queue": TASK_QUEUE})
+    logger.info("Starting Andaluz Worker...", extra={"temporal_host": TEMPORAL_HOST, "task_queue": TASK_QUEUE})
 
     client = await Client.connect(TEMPORAL_HOST, namespace=NAMESPACE)
     logger.info("Connected to Temporal Cluster")

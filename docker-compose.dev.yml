@@ -1,27 +1,29 @@
+version: '3.8'
+
 services:
   # ---------------------------------------------------------
-  # TEMPORAL CLUSTER (Postgres Backend for Durability)
+  # TEMPORAL STACK
   # ---------------------------------------------------------
   temporal-db:
     image: postgres:16-alpine
-    container_name: ark-temporal-db
+    container_name: andaluz-temporal-db
     environment:
-      POSTGRES_USER: temporal
-      POSTGRES_PASSWORD: temporal
-      POSTGRES_DB: temporal
+      - POSTGRES_DB=temporal
+      - POSTGRES_USER=temporal
+      - POSTGRES_PASSWORD=temporal
     volumes:
-      - temporal-db-data:/var/lib/postgresql/data
+      - andaluz-db-data:/var/lib/postgresql/data
+    networks:
+      - andaluz-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U temporal"]
+      test: ["CMD-SHELL", "pg_isready -U temporal -d temporal"]
       interval: 5s
       timeout: 5s
       retries: 5
-    networks:
-      - ark-network
 
   temporal:
     image: temporalio/auto-setup:1.24
-    container_name: ark-temporal
+    container_name: andaluz-temporal
     depends_on:
       temporal-db:
         condition: service_healthy
@@ -34,7 +36,7 @@ services:
     ports:
       - "7233:7233"   # gRPC Endpoint
     networks:
-      - ark-network
+      - andaluz-network
     healthcheck:
       test: ["CMD-SHELL", "temporal --address $$HOSTNAME:7233 workflow list"]
       interval: 10s
@@ -43,7 +45,7 @@ services:
 
   temporal-ui:
     image: temporalio/ui:latest
-    container_name: ark-temporal-ui
+    container_name: andaluz-temporal-ui
     ports:
       - "8088:8080"   # Web UI
     environment:
@@ -53,64 +55,56 @@ services:
       temporal:
         condition: service_healthy
     networks:
-      - ark-network
+      - andaluz-network
 
   # ---------------------------------------------------------
   # LITELLM PROXY (Model Gateway / Router)
   # ---------------------------------------------------------
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
-    container_name: ark-litellm
-    command: ["--config", "/app/config.yaml"]
+    container_name: andaluz-litellm
     ports:
-      - "4000:4000"   # OpenAI Compatible API
-      - "4001:4001"   # Admin UI
+      - "4000:4000"
     volumes:
-      - ./litellm/config.yaml:/app/config.yaml:ro
+      - ./litellm/config.yaml:/app/config.yaml
     environment:
       - NVIDIA_API_KEY=${NVIDIA_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-sk-mock-key-for-dev}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-sk-mock-key-for-dev}
-      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-sk-ark-master-key-dev}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+    command: ["--config", "/app/config.yaml", "--port", "4000", "--detailed_debug"]
     networks:
-      - ark-network
+      - andaluz-network
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/readiness')"]
-      interval: 10s
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:4000/health/readiness')\""]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 20
 
   # ---------------------------------------------------------
-  # ARK WORKER (Python Application)
+  # PYTHON TEMPORAL WORKER
   # ---------------------------------------------------------
   worker:
     build:
       context: ./worker
       dockerfile: Dockerfile.dev
-    container_name: ark-worker
-    restart: always
+    container_name: andaluz-worker
+    volumes:
+      - ./worker:/app
+      - ./test_claim.py:/app/test_claim.py
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - LITELLM_API_BASE=http://litellm:4000/v1
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
     depends_on:
       temporal:
         condition: service_healthy
       litellm:
         condition: service_healthy
-    environment:
-      - TEMPORAL_HOST=temporal:7233
-      - LITELLM_BASE_URL=http://litellm:4000/v1
-      - LITELLM_API_KEY=${LITELLM_MASTER_KEY:-sk-ark-master-key-dev}
-      - LOG_LEVEL=INFO
-      - NVIDIA_API_KEY=${NVIDIA_API_KEY}
-    volumes:
-      - ./worker:/app
-      - ./test_claim.py:/app/test_claim.py
     networks:
-      - ark-network
-    tty: true
-    stdin_open: true
-
-volumes:
-  temporal-db-data:
+      - andaluz-network
 
 networks:
-  ark-network:
-    driver: bridge
+  andaluz-network:
+    name: andaluz-network
+
+volumes:
+  andaluz-db-data:

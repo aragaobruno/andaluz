@@ -86,12 +86,15 @@ Andaluz's implementation demonstrates four core reliability patterns:
    NVIDIA_API_KEY=your_nvidia_api_key_here
    LITELLM_MASTER_KEY=sk-andaluz-master-key-dev
    ```
-3. Start the stack:
+3. Build and start the complete stack:
    ```bash
-   docker compose -f docker-compose.dev.yml up -d
+   docker compose -f docker-compose.dev.yml up -d --build
    ```
-4. Verify the containers are running and healthy. You can access the **Temporal Web Console** at:
-   [http://localhost:8088](http://localhost:8088)
+4. Verify the containers are running and healthy. You can access the services at:
+   * **Analyst Dashboard (Web UI):** [http://localhost:3000](http://localhost:3000)
+   * **API Bridge (FastAPI):** [http://localhost:8000](http://localhost:8000)
+   * **Temporal Web Console:** [http://localhost:8088](http://localhost:8088)
+   * **LiteLLM Gateway:** [http://localhost:4000](http://localhost:4000)
 
 ### Running the Test Scenarios
 

@@ -117,6 +117,18 @@ services:
     networks:
       - andaluz-network
 
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    container_name: andaluz-ui
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    networks:
+      - andaluz-network
+
 networks:
   andaluz-network:
     name: andaluz-network

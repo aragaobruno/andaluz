@@ -6,6 +6,26 @@ Rather than presenting a commercial platform, this repository serves as a techni
 
 ---
 
+## The System in Action
+
+The analyst dashboard, where insurance claims are triaged, reviewed, and approved:
+
+![Analyst dashboard](docs/images/01-dashboard-queue.png)
+
+Durable human-in-the-loop: claims exceeding policy limits pause and wait for a human decision, without consuming compute:
+
+![Human review](docs/images/02-human-review.png)
+
+Every decision is auditable — the trail shows why a claim was flagged and who approved it:
+
+![Audit trail](docs/images/03-audit-trail.png)
+
+The Temporal engine managing durable workflow state behind the scenes:
+
+![Temporal engine](docs/images/04-temporal-engine.png)
+
+---
+
 ## The Problem
 
 LLMs are probabilistic by design, meaning their outputs are non-deterministic and prone to hallucinations. While this flexibility is valuable for unstructured reasoning, regulated industries (such as insurance, finance, and legal tech) demand strict determinism, predictable operational costs, and complete auditability. 
@@ -91,7 +111,7 @@ Andaluz's implementation demonstrates four core reliability patterns:
    ```bash
    docker compose -f docker-compose.dev.yml up -d --build
    ```
-4. Verify the containers are running and healthy. You can access the services at:
+4. Verify the containers are running and healthy. Once running locally, the services are available at:
    * **Analyst Dashboard (Web UI):** [http://localhost:3000](http://localhost:3000)
    * **API Bridge (FastAPI):** [http://localhost:8000](http://localhost:8000)
    * **Temporal Web Console:** [http://localhost:8088](http://localhost:8088)

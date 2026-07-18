@@ -10,7 +10,7 @@ Rather than presenting a commercial platform, this repository serves as a techni
 
 LLMs are probabilistic by design, meaning their outputs are non-deterministic and prone to hallucinations. While this flexibility is valuable for unstructured reasoning, regulated industries (such as insurance, finance, and legal tech) demand strict determinism, predictable operational costs, and complete auditability. 
 
-Due to these hurdles—compounded by uncontrollable API cost surges, hidden failure modes, and lack of human review safeguards—recent industry research estimates that approximately 40% of agentic AI projects will be abandoned by 2027. Andaluz explores the architectural patterns required to mitigate these risks and bridge the gap between AI flexibility and enterprise reliability.
+Due to these hurdles—compounded by uncontrolled API costs, hidden failure modes, and lack of human review safeguards—recent industry research estimates that approximately 40% of agentic AI projects will be abandoned by 2027. Andaluz explores the architectural patterns required to mitigate these risks and bridge the gap between AI flexibility and enterprise reliability.
 
 ---
 
@@ -29,43 +29,44 @@ Andaluz's implementation demonstrates four core reliability patterns:
 
 ```text
                +-------------------------------------------------+
-               |             Unstructured Input Document         |
+               |             Analyst Dashboard (UI)              | (Port 3000)
                +-------------------------------------------------+
-                                       |
-                                       v
+                                        |
+                                        | HTTP
+                                        v
                +-------------------------------------------------+
-               |            LLM Extraction (LiteLLM)             |
-               |      * Schema-enforced extraction (Pydantic)    |
-               |      * Token-based cost calculation at Gateway  |
+               |                   API Bridge                    | (Port 8000)
                +-------------------------------------------------+
-                                       |
-                                       v
+                                        |
+                                        | gRPC
+                                        v
                +-------------------------------------------------+
-               |            FinOps Budget Enforcement            |
-               |      * Spent > Limit ? -> Reject immediately     |
+               |                Temporal Server                  | (Port 7233)
                +-------------------------------------------------+
-                                       |
-                                       v
-               +-------------------------------------------------+
-               |             Deterministic Validation            |
-               |      * CNPJ Checksum, Policy Limits, Dates      |
-               +-------------------------------------------------+
-                   |                   |                   |
-        [Hard Failure]          [Manual Review]     [Auto-Passed]
-                   |                   |                   |
-                   v                   v                   v
-             +-----------+      +--------------+     +-----------+
-             | Rejected  |      | Temporal UI  |     | Approved  |
-             |  Result   |      |  (Wait 48h)  |     |  Result   |
-             +-----------+      +--------------+     +-----------+
-                                       |
-                                       v
-                                [Human Signal]
-                                (Approve/Reject)
+                       ^                                ^
+                       | gRPC                           | gRPC
+                       v                                v
+         +---------------------------+    +---------------------------+
+         |    Temporal Web Console   |    |      Andaluz Worker       |
+         |        (Port 8088)        |    +---------------------------+
+         +---------------------------+                  |
+                                                        | HTTP
+                                                        v
+                                          +---------------------------+
+                                          |      LiteLLM Gateway      | (Port 4000)
+                                          +---------------------------+
+                                                        |
+                                                        | HTTP
+                                                        v
+                                          +---------------------------+
+                                          |     LLM API Provider      | (NVIDIA NIM)
+                                          +---------------------------+
 ```
 
 ### Technology Decisions
 
+* **Analyst Dashboard (Web UI):** A lightweight Nginx service serving an interactive SPA that enables claim analysts to register new unstructured claims, monitor active processing pipelines, and resolve Human-in-the-Loop review requests visually.
+* **API Bridge (FastAPI):** A bridge API exposing REST endpoints that translates client HTTP requests into Temporal gRPC client commands, queries active workflow memory states, and signals external decisions.
 * **Temporal:** Chosen to manage workflow state. In a traditional database-and-queue setup, managing a 48-hour pause, retries, and state persistence requires complex orchestration. Temporal provides durable execution, making the code resilient to worker restarts and server outages.
 * **LiteLLM Proxy:** Used as an intelligent model gateway. It handles model routing, fallbacks, and calculates per-token cost dynamically before returning the response to the worker, keeping the worker decoupled from model provider specifics.
 * **Pydantic:** Enforces strict, type-safe data parsing. Pydantic schemas are passed directly to the LLM to enforce structured outputs, and validate input parameters at the worker boundary.
@@ -125,7 +126,7 @@ This runs three distinct verification scenarios:
 ### 3. Idempotency via Document Hash Workflow IDs
 * **Decision:** The workflow ID is derived directly from the SHA-256 hash of the source document (`claim-doc-hash-<hash_suffix>`). 
 * **Why:** Deriving the ID from the document content prevents duplicate processing of the same claim. If a user clicks "submit" twice, Temporal automatically routes the second request to the existing workflow execution (throwing a `WorkflowExecutionAlreadyStartedError` if active), enforcing idempotency out-of-the-box.
-* **What we gave up:** The inability to reprocess the same physical document for legitimate revisions. To resubmit a corrected version of the same document, the system must generate a new unique hash (e.g. by appending metadata) or run on a separate run ID.
+* **What we gave up:** The ability to reprocess the same physical document for legitimate revisions. To resubmit a corrected version of the same document, the system must generate a new unique hash (e.g. by appending metadata) or run on a separate run ID.
 
 ---
 
@@ -135,7 +136,6 @@ This repository is a reference architecture study and intentionally omits produc
 
 * **No Authentication or RBAC:** There is no user authentication, session management, or Role-Based Access Control. Any client can connect to the Temporal gRPC port or signal approval.
 * **No WORM (Write Once Read Many) Audit Logs:** Audit logs are written to PostgreSQL via Temporal's history and worker logging. A production system would write these immutable records to a WORM storage compliance engine.
-* **No Client Dashboard:** The UI shown is the default developer console of Temporal. A real application would embed a dedicated dashboard for human reviewers.
 * **No OTel Observability:** OpenTelemetry metrics and tracing are not configured in the Docker Compose environment.
 
 ---

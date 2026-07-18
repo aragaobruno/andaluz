@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ---------------------------------------------------------
   # TEMPORAL STACK
@@ -98,6 +96,23 @@ services:
       temporal:
         condition: service_healthy
       litellm:
+        condition: service_healthy
+    networks:
+      - andaluz-network
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: andaluz-api
+    ports:
+      - "8000:8000"
+    environment:
+      - TEMPORAL_HOST=temporal:7233
+      - TEMPORAL_NAMESPACE=default
+      - TASK_QUEUE=andaluz-tasks
+    depends_on:
+      temporal:
         condition: service_healthy
     networks:
       - andaluz-network

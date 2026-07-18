@@ -1,6 +1,6 @@
 general_settings:
   drop_params: true
-  alerting: ["slack"]
+  allow_requests_on_db_unavailable: true
 
 model_list:
   # TIER 1: Fast, Cheap, High Throughput (Primary for Extraction) - Llama 3.1 8B
@@ -49,5 +49,5 @@ router_settings:
   retry_on_status_codes: [429, 500, 502, 503, 504]
 
 litellm_settings:
-  ui: true
+  ui: false
   telemetry: false

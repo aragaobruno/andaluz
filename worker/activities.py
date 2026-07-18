@@ -17,8 +17,8 @@ from schemas import ClaimInput, ExtractedClaimData, ValidatedClaimOutput, Extrac
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
-LITELLM_BASE_URL = os.getenv("LITELLM_BASE_URL", "http://litellm:4000/v1")
-LITELLM_API_KEY = os.getenv("LITELLM_API_KEY", "sk-ark-master-key-dev")
+LITELLM_BASE_URL = os.getenv("LITELLM_API_BASE", "http://litellm:4000/v1")
+LITELLM_API_KEY = os.getenv("LITELLM_MASTER_KEY", "sk-andaluz-master-key-dev")
 PRIMARY_MODEL = "ark-fast"
 
 llm_client = AsyncOpenAI(
